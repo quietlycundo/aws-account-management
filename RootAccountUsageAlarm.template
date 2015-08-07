@@ -1,0 +1,321 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloudTrail Monitoring of Root Account Usage",
+  "Parameters": {
+    "LogGroup": {
+      "Description": "Log Group Name",
+      "Default": "CloudTrail/DefaultLogGroup",
+      "Type": "String"
+    }
+  },
+  "Conditions": {},
+  "Mappings": {
+    
+  },
+  "Resources": {
+    "RootAccountUsageCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "RootAccountUsageCount"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.userIdentity.type = \"Root\" && $.userIdentity.invokedBy NOT EXISTS && $.userIdentity.accountId = \"",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              "\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "RootAccountUsageCloudWatchAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AlarmDescription": "Root Account Usage",
+        "Namespace": "CloudTrailMetrics",
+        "MetricName": "RootAccountUsageCount",
+        "Dimensions": [ {
+          "Name": "RootAccountUsageCount",
+          "Value": "Count"
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": "300",
+        "EvaluationPeriods": "1",
+        "Threshold": "0",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "AlarmActions": [
+        ]
+      }
+    },
+    "APIErrorMetricCloudTrailFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "errorCodeExists"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.errorCode = \"*\" && $.erroCode != \"*Exception\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "VolumeTaggingCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "LastUpdatedTagCreated"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.eventName = \"CreateTags\" && $.userIdentity.arn = \"*ops-*-mgmt*\" && $.requestParameters.tagSet.items[0].key = \"LastUpdated\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "NewSecurityGroupCreationCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "launchWizardSecurityGroup"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.eventName = \"RunInstances\" && $.requestParameters.groupDescription = \"launch-wizard-*\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "LargeInstanceLaunchesCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "LargeInstanceCreated"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.eventName = \"RunInstances\" && $.requestParameters.instanceType = \"*.*large\" && $.requestParameters.instanceType != \"t2.*\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "LargeInstanceLaunchesCloudWatchAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AlarmDescription": "Large Instance Launched",
+        "Namespace": "CloudTrailMetrics",
+        "MetricName": "LargeInstanceCreated",
+        "Dimensions": [ {
+          "Name": "LargeInstanceCreateCount",
+          "Value": "Count"
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": "300",
+        "EvaluationPeriods": "1",
+        "Threshold": "0",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "AlarmActions": [
+        ]
+      }
+    },
+    "EC2ClassicInstanceLaunchesCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "EC2ClassicInstanceCreations"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.eventName = \"RunInstances\" && $.requestParameters.instanceType = \"*.*large\" && $.requestParameters.instanceType != \"t2.*\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "EC2ClassicInstanceLaunchesCloudWatchAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AlarmDescription": { "Fn::Join": [ "", [ "[", { "Ref": "AWS::AccountId" }, "]", " Instance Launched Outside a VPC" ] ] },
+        "Namespace": "CloudTrailMetrics",
+        "MetricName": "EC2ClassicInstanceCreations",
+        "Dimensions": [ {
+          "Name": "EC2ClassicInstanceCreateCount",
+          "Value": "Count"
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": "300",
+        "EvaluationPeriods": "1",
+        "Threshold": "0",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "AlarmActions": [
+        ]
+      }
+    },
+    "LargeLaunchConfigurationCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "LargeInstanceTypeLaunchConfigurationCreations"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.eventName = \"CreateLaunchConfiguration\" && $.requestParameters.instanceType = \"*.*large\" && $.requestParameters.instanceType != \"t2.*\" }"
+            ]
+          ]
+        }
+      }
+    },
+    "LargeLaunchConfigurationCloudWatchAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AlarmDescription": { "Fn::Join": [ "", [ "[", { "Ref": "AWS::AccountId" }, "]", " LaunchConfiguration created with Large InstanceType" ] ] },
+        "Namespace": "CloudTrailMetrics",
+        "MetricName": "LargeInstanceTypeLaunchConfigurationCreations",
+        "Dimensions": [ {
+          "Name": "LargeInstanceTypeLaunchConfigurationCreations",
+          "Value": "Count"
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": "300",
+        "EvaluationPeriods": "1",
+        "Threshold": "0",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "AlarmActions": [
+        ]
+      }
+    },
+    
+    "LargeLaunchConfigurationCloudTrailMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "CloudTrailMetrics",
+            "MetricName": "LargeEbsVolumeCreations"
+          }
+        ],
+        "FilterPattern": {
+          "Fn::Join": [
+            "",
+            [
+              "{ $.eventName = \"RunInstances\"  && $.requestParameters.blockDeviceMapping.items[0].ebs.volumeSize > 100  || $.requestParameters.blockDeviceMapping.items[1].ebs.volumeSize > 100 }"
+            ]
+          ]
+        }
+      }
+    },
+    "LargeLaunchConfigurationCloudWatchAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AlarmDescription": { "Fn::Join": [ "", [ "[", { "Ref": "AWS::AccountId" }, "]", " Instance created with Large (>100GB) EBS Volume" ] ] },
+        "Namespace": "CloudTrailMetrics",
+        "MetricName": "LargeEbsVolumeCreations",
+        "Dimensions": [ {
+          "Name": "LargeEbsVolumeCreations",
+          "Value": "Count"
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": "300",
+        "EvaluationPeriods": "1",
+        "Threshold": "0",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "AlarmActions": [
+        ]
+      }
+    }
+    
+  },
+  "Outputs": {}
+}
